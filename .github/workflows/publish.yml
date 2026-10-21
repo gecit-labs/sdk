@@ -62,6 +62,11 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      # The SDK's test script is `bun test`, and ubuntu-latest has no bun.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       # setup-node ships npm 10.x; trusted publishing needs 11.5.1 or later.
       - name: Use an npm that can do OIDC
         run: |

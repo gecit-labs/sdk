@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=@userelay/sdk && npm run build --workspace=@userelay/cli",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test --workspace=@userelay/sdk"
   },
