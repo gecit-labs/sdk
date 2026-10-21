@@ -1,17 +1,24 @@
-# Publish @userelay/sdk and @userelay/cli to npm.
+# Stage @userelay/sdk and @userelay/cli for release.
 #
-# ── Why this runs in CI and not on a laptop ─────────────────────────────────
+# ── This workflow cannot publish anything ───────────────────────────────────
 #
-# npm's trusted publishing authenticates this workflow to the registry over
-# OIDC, so there is no NPM_TOKEN here and none in the repository secrets. A
-# token that does not exist cannot leak from a laptop, a shell history or a
-# CI log.
+# It stages. A staged version is uploaded, signed and inspectable, and it is
+# not on the registry until a maintainer approves it with 2FA. Nothing a
+# compromised workflow can do results in a package the world can install.
 #
-# It also attaches provenance automatically: a Sigstore-signed attestation,
-# recorded in a public transparency log, binding each published version to the
-# exact repository, workflow and commit that produced it. Anyone can check that
-# the code on npm is the code in this repo — which is the whole point of
-# publishing the client under Apache-2.0 while the service stays private.
+# That is npm's recommended posture, and it is the same shape as the product:
+# the automation does the work and a human signs off before anything lands.
+# A release process that contradicted our own approval gate would be a strange
+# thing to ship.
+#
+# ── No token, and provenance for free ───────────────────────────────────────
+#
+# npm authenticates this workflow over OIDC, so there is no NPM_TOKEN here and
+# none in repository secrets. A token that does not exist cannot leak. Trusted
+# publishing also attaches provenance automatically — a Sigstore-signed
+# attestation, recorded in a public transparency log, binding each version to
+# the repository, workflow and commit that produced it. No --provenance flag
+# is needed or wanted.
 #
 # ── Setup, once per package, on npmjs.com ───────────────────────────────────
 #
@@ -20,15 +27,20 @@
 #     Repository:           sdk
 #     Workflow filename:    publish.yml
 #
-# npm does not validate that configuration when you save it, so a mistake only
-# shows up as a failed publish. A new configuration also has to complete one
-# successful publish within two days or it expires.
+# `npm stage publish` is permitted by default, so Allowed actions needs no
+# change. npm does not validate the configuration when you save it, so a
+# mistake surfaces only as a failed run.
 #
-# ── Order is not optional ───────────────────────────────────────────────────
+# ── After a run ─────────────────────────────────────────────────────────────
 #
-# The CLI depends on the SDK at the version being released, so the SDK has to
-# be on the registry before the CLI is published. These are separate steps in
-# one job, in that order, for exactly that reason.
+# The final step prints the stage ids. Approve from npmjs.com, or with a local
+# npm 12 or later:
+#
+#   npm stage view <stage-id>       # inspect before trusting it
+#   npm stage approve <stage-id>    # requires 2FA; this is the publish
+#   npm stage reject <stage-id>     # also 2FA
+#
+# The dist-tag is fixed at stage time. Changing it means reject and re-stage.
 
 name: publish
 
@@ -36,12 +48,12 @@ on:
   workflow_dispatch:
     inputs:
       packages:
-        description: What to publish
+        description: What to stage
         type: choice
         default: both
         options: [both, sdk, cli]
       dry_run:
-        description: Pack and verify without publishing
+        description: Build and pack only — stage nothing
         type: boolean
         default: false
 
@@ -52,7 +64,7 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
+  stage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,8 +79,9 @@ jobs:
         with:
           bun-version: latest
 
-      # setup-node ships npm 10.x; trusted publishing needs 11.5.1 or later.
-      - name: Use an npm that can do OIDC
+      # setup-node ships npm 10.x. Trusted publishing needs 11.5.1+, and the
+      # `stage` subcommand only exists from npm 12.
+      - name: Use an npm that can stage
         run: |
           npm install -g npm@latest
           npm --version
@@ -77,10 +90,21 @@ jobs:
       - run: npm run build
       - run: npm test
 
-      - name: Publish @userelay/sdk
+      # Run inside each package rather than with --workspace: npm's own docs
+      # say `stage` "is unaware of workspaces" while still listing the flag,
+      # and a release is the wrong place to find out which is true.
+      - name: Stage @userelay/sdk
         if: inputs.packages == 'both' || inputs.packages == 'sdk'
-        run: npm publish --workspace=@userelay/sdk ${{ inputs.dry_run && '--dry-run' || '' }}
+        working-directory: packages/sdk
+        run: npm stage publish ${{ inputs.dry_run && '--dry-run' || '' }}
 
-      - name: Publish @userelay/cli
+      - name: Stage @userelay/cli
         if: inputs.packages == 'both' || inputs.packages == 'cli'
-        run: npm publish --workspace=@userelay/cli ${{ inputs.dry_run && '--dry-run' || '' }}
+        working-directory: packages/cli
+        run: npm stage publish ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Stage ids to approve
+        if: ${{ !inputs.dry_run }}
+        run: |
+          npm stage list @userelay/sdk || true
+          npm stage list @userelay/cli || true
