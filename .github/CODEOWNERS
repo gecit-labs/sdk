@@ -1,0 +1,3 @@
+# Every file, one owner. GitHub auto-requests review from them on any PR.
+# Enforced by the ruleset on main where the plan allows it.
+* @eshwaran-krishnan
