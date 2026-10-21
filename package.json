@@ -1,0 +1,17 @@
+{
+  "name": "@userelay/workspace",
+  "private": true,
+  "description": "Workspace root for the Relay SDK and CLI. Not published.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspace=@userelay/sdk"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
