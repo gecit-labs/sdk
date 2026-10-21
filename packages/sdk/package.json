@@ -1,0 +1,54 @@
+{
+  "name": "@userelay/sdk",
+  "version": "0.2.1",
+  "description": "Client for Relay — agentic enterprise migrations. Start a migration, watch it, answer it, pay for it.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gecit-labs/sdk.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/gecit-labs/sdk/tree/main/packages/sdk#readme",
+  "bugs": {
+    "url": "https://github.com/gecit-labs/sdk/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "relay",
+    "migration",
+    "salesforce",
+    "attio",
+    "sdk"
+  ],
+  "sideEffects": false,
+  "author": "Eshwaran Krishnan",
+  "publishConfig": {
+    "access": "public"
+  }
+}

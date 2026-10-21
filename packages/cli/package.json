@@ -1,0 +1,45 @@
+{
+  "name": "@userelay/cli",
+  "version": "0.2.1",
+  "description": "Relay from your terminal — start migrations, watch them, answer them, see what they cost.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gecit-labs/sdk.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/gecit-labs/sdk/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/gecit-labs/sdk/issues"
+  },
+  "type": "module",
+  "bin": {
+    "relay": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "@userelay/sdk": "^0.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.0"
+  },
+  "author": "Eshwaran Krishnan",
+  "publishConfig": {
+    "access": "public"
+  }
+}
