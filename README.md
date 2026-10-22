@@ -13,40 +13,25 @@ npm install @userelay/sdk
 npm install -g @userelay/cli
 ```
 
-## Why these are public and the service is not
-
-Relay's backend is private. These two packages are not, because they are
-nothing more than a typed way to call an HTTP API that you already have a key
-for — there is no advantage to anyone in keeping that shape secret, and real
-cost to a customer who has to guess at it.
-
-Publishing them also makes one design decision checkable rather than
-asserted. Neither package has a default host:
-
-> There is no default host, and that is deliberate: this client attaches
-> `Authorization: Bearer relay_sk_…` to every request, so a built-in fallback
-> would hand a live key to whoever owns that domain the first time someone
-> forgot to configure it. It throws instead.
-
-You can read that for yourself here instead of taking our word for it. The same
-reasoning is why `relay runs approve` requires a key minted with the
-`runs:approve` scope: an ordinary key can start a migration and read the plan,
-but not sign off on writing to a customer's live system.
-
-## Layout
-
-The SDK has zero runtime dependencies and targets Node 18+. The CLI depends on
-the SDK and on `commander`, and deliberately holds no database client — one
-implementation per verb, and the one we use daily is the one customers use.
+Relay's backend is private; these two packages are not. They are a typed way to
+call an HTTP API you already have a key for.
 
 ## Working on them
 
 ```bash
-cd packages/sdk && npm install && npm run build && npm test
-cd packages/cli && npm install && npm run build
+npm install
+npm run build
+npm test
 ```
 
-Both are built with `tsc` against `tsconfig.build.json`.
+An npm workspace. The SDK has zero runtime dependencies and targets Node 18+;
+the CLI depends on the SDK and on `commander`. Both build with `tsc`.
+
+## Releases
+
+`npm stage publish` from CI, approved with 2FA before anything reaches the
+registry. Each version carries a Sigstore provenance attestation binding it to
+the commit it was built from — verify with `npm audit signatures`.
 
 ## Licence
 

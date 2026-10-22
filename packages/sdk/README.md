@@ -8,20 +8,15 @@ npm install @userelay/sdk
 
 Zero runtime dependencies. Node 18+.
 
-## Pointing it at your deployment
+## Configure
 
 ```bash
 RELAY_API_KEY=relay_sk_...            # Settings → API keys, in the console
 RELAY_BASE_URL=https://relaymesh.io   # your deployment
 ```
 
-Both can be passed to the constructor instead. **There is no default host**, and
-that is deliberate: this client attaches `Authorization: Bearer relay_sk_…` to
-every request, so a built-in fallback would hand a live key to whoever owns that
-domain the first time someone forgot to configure it. It throws instead.
-
-It also means moving the service to a new domain is a config change and never a
-release — nothing in this package knows where it lives.
+Or pass both to the constructor. There is no default host — it throws if the
+base URL is unset, rather than sending your key somewhere you didn't choose.
 
 ## Start a migration and follow it
 
@@ -47,58 +42,53 @@ const run = await relay.runs.create({
 for await (const event of relay.runs.watch(run.runId)) {
   if (event.type !== "run") continue;
 
-  // Someone needs to clear an SSO or MFA prompt. This happens once per org, ever.
+  // Someone needs to clear an SSO or MFA prompt. Once per org.
   if (event.liveViewUrl) await pageOnCall(event.liveViewUrl);
 
-  // The plan is ready and nothing has been written yet. The card belongs to the
-  // open question rather than to the run, so `approvalCard` finds it for you.
+  // The plan is ready. Nothing has been written yet.
   const card = approvalCard(event);
   if (card) console.log(`${card.objectsMapped} objects, est. ${card.estimate?.credits} credits`);
 
-  // It asked you something.
   const question = event.view.pendingQuestion;
   if (question) await relay.runs.answer(run.runId, "yes");
 }
 ```
 
-`watch()` reconnects on its own. A live migration is minutes of browser work with
-a human pause in the middle, so the connection *will* be dropped by something —
-the stream survives that and ends only when the run does. Every event carries the
-whole run state rather than a delta, so a reconnect can never miss a transition.
+`watch()` reconnects on its own and ends only when the run does. Every event
+carries the whole run state rather than a delta, so a reconnect can't miss a
+transition.
 
-## Approving is deliberately hard
+## Approving
 
-Nothing reaches a customer's live system until a human approves it. A key can
-only approve if it was minted with the `runs:approve` scope, which is **not** in
-the default set:
+Nothing reaches a live system until a human approves it. Approval needs a key
+minted with `runs:approve`, which is not in the default set:
 
 ```ts
 try {
   await relay.runs.approve(run.runId);
 } catch (err) {
   if (err instanceof MissingScopeError) {
-    // Expected on an ordinary CI key. Hand it to a person instead.
+    // Expected on an ordinary CI key. Hand it to a person.
   }
 }
 ```
 
-The default scopes — `runs:read`, `runs:write`, `usage:read` — let a script start
-a migration, watch it, read the plan, and answer questions about fields. They do
-not let it sign off on writing to production.
+Default scopes are `runs:read`, `runs:write` and `usage:read` — enough to start
+a migration, watch it, read the plan and answer questions about fields.
 
-## Errors you should branch on
+## Errors
 
 | | means | retry? |
 |---|---|---|
-| `InsufficientCreditsError` | 402, the workspace is out of credits | never |
+| `InsufficientCreditsError` | 402, out of credits | never |
 | `MissingScopeError` | 403, this key can't do that — carries `.scope` | never |
 | `AuthenticationError` | 401, key absent, revoked, or expired | never |
 | `NotFoundError` | 404, or not yours — the API doesn't distinguish | never |
 | `RelayError` | anything else, with `.status` | maybe |
 
-The client retries a `GET` through connection errors and 5xx. It never retries a
-`POST`: there is no idempotency key for run creation, so a replayed request is a
-second migration against a real org.
+`GET`s retry through connection errors and 5xx. `POST`s never retry: run
+creation has no idempotency key, so a replayed request is a second migration
+against a real org.
 
 ## Credits
 
@@ -109,9 +99,8 @@ const { balance, entries } = await relay.credits.balance();
 const usage = await relay.credits.usage(run.runId);
 ```
 
-Rehearsals are free — only a real cutover is billed. A run that exhausts its
-balance mid-flight **rests** rather than failing: top up, call
-`relay.runs.resume(id)`, and it carries on from where it stopped.
+Rehearsals are free; only a real cutover is billed. A run that exhausts its
+balance rests instead of failing — top up and call `relay.runs.resume(id)`.
 
 ## Credentials
 
@@ -123,17 +112,15 @@ await relay.credentials.put("sf/readonly", {
 });
 ```
 
-Needs the `credentials:write` scope. Nothing can read a secret back — there is no
-endpoint that unseals, by design.
+Needs `credentials:write`. Secrets can't be read back; there is no endpoint
+that unseals one.
 
-## What this client can't do
+## Not in this client
 
-- **Mint or revoke keys.** Those need a session in the console. If a key could
-  mint a key, a leaked read-only token would escalate itself.
-- **Add credits.** A workspace topping up its own balance is a free-money
-  endpoint.
-- **Drive the browser during a takeover.** `runs.takeover()` gives you a URL for
-  a person to open. Clearing an MFA challenge is a human's job.
+- **Minting or revoking keys** — needs a console session.
+- **Adding credits** — operator-side only.
+- **Driving the browser during a takeover** — `runs.takeover()` returns a URL
+  for a person to open.
 
 ## License
 
