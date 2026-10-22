@@ -9,16 +9,12 @@ export RELAY_BASE_URL=https://relaymesh.io   # your deployment
 pbpaste | relay login                        # paste a key from Settings
 ```
 
-Or pass it per command: `relay --url https://relaymesh.io runs list`.
+Or per command: `relay --url https://relaymesh.io runs list`.
 
-CI should set `RELAY_API_KEY` instead of logging in — the environment always
-wins over the stored config, so a machine behaves the same as the command you
-tested by hand.
+There is no default host — it refuses to run without one.
 
-**There is no default host.** The CLI attaches a live API key to every request,
-and a fallback domain we do not own would receive it on the first
-misconfiguration. It refuses to run instead — which also means moving the
-service later is one environment variable, not a republish.
+In CI, set `RELAY_API_KEY` instead of logging in. The environment wins over
+stored config, so a machine behaves the same as the command you tested by hand.
 
 ```bash
 relay runs start --source salesforce --dest attio --live --watch
@@ -31,11 +27,9 @@ relay usage run-2026...
 
 `relay runs approve` needs a key minted with the `runs:approve` scope. Ordinary
 keys can start migrations and read the plan, but not sign off on writing to a
-customer's live system — that's the point.
+live system.
 
-Everything here goes over HTTP through [`@userelay/sdk`](../sdk). There is no
-database client in this package, deliberately: one implementation per verb, and
-the one we use daily is the one customers use.
+Everything goes over HTTP through [`@userelay/sdk`](../sdk).
 
 ## License
 
